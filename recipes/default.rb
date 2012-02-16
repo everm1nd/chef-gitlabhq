@@ -25,7 +25,7 @@ end
 
 # Add to git group
 group "git" do
-  members ["git", node[:gitlab][:user]]
+  members ["git", node[:gitlabhq][:user]]
 end
 
 # Fix permissions
@@ -66,7 +66,7 @@ git node[:gitlabhq][:path] do
   repository "git://github.com/gitlabhq/gitlabhq.git"
   reference "stable"
   action :sync
-  owner node[:gitlabhq][:user]
+  user node[:gitlabhq][:user]
 end
 
 
