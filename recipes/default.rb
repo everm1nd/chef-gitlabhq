@@ -1,5 +1,3 @@
-include_recipe 'gitolite::default'
-
 # Create the user
 user node[:gitlabhq][:user] do
   comment "gitlabhq user"
@@ -20,9 +18,13 @@ execute "generate ssh keys for #{node[:gitlabhq][:user]}." do
 end
 
 gitolite_instance do
-  admin_key IO.read("/home/#{node[:gitlabhq][:user]}/.ssh/id_rsa.pub")
   user 'git'
-  admin 'gitlabhq'
+  admin node[:gitlabhq][:user]
 end
 
 # add localhost to known_host
+execute "ssh-keyscan localhost > .ssh/known_hosts" do
+  user node[:gitlabhq][:user]
+  cwd "/home/#{node[:gitlabhq][:user]}"
+  not_if "grep localhost .ssh/known_hosts" # FIX! This doesn't work
+end
