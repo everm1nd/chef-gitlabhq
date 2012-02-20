@@ -9,9 +9,9 @@ email:
 # Git Hosting congiguration
 git_host:
   system: gitolite
-  admin_uri: git@localhost:gitolite-admin
+  admin_uri: git@<%=node[:hostname]%>:gitolite-admin
   base_path: /home/git/repositories/
-  host: localhost
+  host: <%=node[:hostname]%>
   git_user: git
   # port: 22
 

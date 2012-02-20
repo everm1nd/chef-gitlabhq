@@ -17,22 +17,27 @@ execute "generate ssh keys for #{node[:gitlabhq][:user]}." do
   command "ssh-keygen -t rsa -q -f /home/#{node[:gitlabhq][:user]}/.ssh/id_rsa -P \"\""
 end
 
+include_recipe "gitolite::default"
+
 # Create a gitolite instance managed by this user
-gitolite_instance do
+gitolite "create-instance" do
   user 'git'
   admin node[:gitlabhq][:user]
+  key_path "/home/#{node[:gitlabhq][:user]}/.ssh/id_rsa.pub"
+  action :create
 end
 
 # Add to git group
 group "git" do
-  members ["git", node[:gitlabhq][:user]]
+  members node[:gitlabhq][:user]
+  append true
 end
 
 # Fix permissions
 directory '/home/git/repositories' do
   owner 'git'
   group 'git'
-  mode 770
+  mode 0770
   recursive true
 end
 
@@ -58,8 +63,10 @@ easy_install_package "pygments" do
   action :install
 end
 
-gem_package "bundler" do
-  action :install
+%w{bundler foreman}.each do |g|
+  gem_package g do
+    action :install
+  end
 end
 
 # Prepare folders
@@ -86,6 +93,7 @@ end
   end
 end
 
+# Configuration files
 %w{ gitlab database}.each do |cf|
   template "#{node[:gitlabhq][:path]}/shared/#{cf}.yml" do
     source "#{cf}.yml.erb"
@@ -102,7 +110,7 @@ deploy_revision "gitlabhq" do
   user node[:gitlabhq][:user]
   deploy_to node[:gitlabhq][:path]
   environment 'production'
-  action :force_deploy
+  action :deploy
   before_migrate do
     link "#{release_path}/vendor/bundle" do
       to "#{node[:gitlabhq][:path]}/shared/vendor_bundle"
@@ -121,6 +129,5 @@ deploy_revision "gitlabhq" do
   migrate true
   migration_command "bundle exec rake db:setup; bundle exec rake db:seed_fu"
 end
-
 
 
