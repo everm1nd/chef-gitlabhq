@@ -2,7 +2,7 @@
 user node[:gitlabhq][:user] do
   comment "gitlabhq user"
   home "/home/#{node[:gitlabhq][:user]}"
-  shell "/bin/bash"
+  shell "/bin/zsh"
   action :create
 end
 # its folder
@@ -42,7 +42,7 @@ directory '/home/git/repositories' do
 end
 
 # add localhost to known_host to automatically connect
-execute "ssh-keyscan localhost > .ssh/known_hosts" do
+execute "ssh-keyscan `uname -n` > .ssh/known_hosts" do
   user node[:gitlabhq][:user]
   cwd "/home/#{node[:gitlabhq][:user]}"
   not_if "grep localhost .ssh/known_hosts" # FIX! This doesn't work
@@ -53,7 +53,7 @@ include_recipe "apt"
 include_recipe "git"
 include_recipe "build-essential"
 
-packages = %w{wget curl gcc checkinstall libxml2-dev libxslt1-dev sqlite3 libsqlite3-dev libcurl4-openssl-dev libc6-dev libssl-dev libmysql++-dev make zlib1g-dev libicu-dev redis-server sendmail python-dev python-setuptools}
+packages = %w{wget curl checkinstall libxml2-dev libxslt1-dev libcurl4-openssl-dev libc6-dev libssl-dev libmysql++-dev zlib1g-dev libicu-dev redis-server sendmail python-dev python-setuptools}
 
 packages.each do |pkg|
   package pkg
@@ -63,8 +63,8 @@ easy_install_package "pygments" do
   action :install
 end
 
-%w{bundler foreman}.each do |g|
-  gem_package g do
+%w{bundler foreman}.each do |name|
+  rbenv_gem name do
     action :install
   end
 end
@@ -94,7 +94,7 @@ end
 end
 
 # Configuration files
-%w{ gitlab database}.each do |cf|
+%w{gitlab database}.each do |cf|
   template "#{node[:gitlabhq][:path]}/shared/#{cf}.yml" do
     source "#{cf}.yml.erb"
     owner node[:gitlabhq][:user]
@@ -116,18 +116,16 @@ deploy_revision "gitlabhq" do
       to "#{node[:gitlabhq][:path]}/shared/vendor_bundle"
     end
     execute "bundle install --deployment --without test development" do
-      ignore_failure true
+      # ignore_failure true
       cwd release_path
     end
   end
-  
+
   symlink_before_migrate({
-      "gitlab.yml" => "config/gitlab.yml",
-      "database.yml" => "config/database.yml"
-    })
-    
+    "gitlab.yml" => "config/gitlab.yml",
+    "database.yml" => "config/database.yml"
+  })
+
   migrate true
   migration_command "bundle exec rake db:setup; bundle exec rake db:seed_fu"
 end
-
-
