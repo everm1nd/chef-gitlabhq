@@ -119,6 +119,9 @@ deploy_revision "gitlabhq" do
       # ignore_failure true
       cwd release_path
     end
+    execute "rake assets:precompile" do
+      cwd release_path
+    end
   end
 
   symlink_before_migrate({
